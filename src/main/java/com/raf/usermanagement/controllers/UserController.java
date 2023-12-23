@@ -64,6 +64,24 @@ public class UserController {
                         System.out.println("Dodata permisija 4");
                         permissionsList.add(permissions.get(3));
                     }
+                    if (id == 5) {
+                        permissionsList.add(permissions.get(4));
+                    }
+                    if (id == 6) {
+                        permissionsList.add(permissions.get(5));
+                    }
+                    if (id == 7) {
+                        permissionsList.add(permissions.get(6));
+                    }
+                    if (id == 8) {
+                        permissionsList.add(permissions.get(7));
+                    }
+                    if (id == 9) {
+                        permissionsList.add(permissions.get(8));
+                    }
+                    if (id == 10) {
+                        permissionsList.add(permissions.get(9));
+                    }
                 }
             }
             user.setRoles( permissionsList );
@@ -100,6 +118,24 @@ public class UserController {
                     if (id == 4) {
                         System.out.println("Dodata permisija 4");
                         permissionsList.add(permissions.get(3));
+                    }
+                    if (id == 5) {
+                        permissionsList.add(permissions.get(4));
+                    }
+                    if (id == 6) {
+                        permissionsList.add(permissions.get(5));
+                    }
+                    if (id == 7) {
+                        permissionsList.add(permissions.get(6));
+                    }
+                    if (id == 8) {
+                        permissionsList.add(permissions.get(7));
+                    }
+                    if (id == 9) {
+                        permissionsList.add(permissions.get(8));
+                    }
+                    if (id == 10) {
+                        permissionsList.add(permissions.get(9));
                     }
                 }
             }
