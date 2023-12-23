@@ -3,6 +3,7 @@ package com.raf.usermanagement.bootstrap;
 import com.raf.usermanagement.model.Permission;
 import com.raf.usermanagement.model.RoleType;
 import com.raf.usermanagement.model.User;
+import com.raf.usermanagement.model.Vacuum;
 import com.raf.usermanagement.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;

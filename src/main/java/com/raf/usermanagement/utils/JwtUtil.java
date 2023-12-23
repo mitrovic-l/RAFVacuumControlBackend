@@ -2,6 +2,7 @@ package com.raf.usermanagement.utils;
 
 import com.raf.usermanagement.model.Permission;
 import com.raf.usermanagement.model.RoleType;
+import com.raf.usermanagement.model.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;

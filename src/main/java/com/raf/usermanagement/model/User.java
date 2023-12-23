@@ -3,6 +3,7 @@ package com.raf.usermanagement.model;
 import javax.persistence.*;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
@@ -27,6 +28,7 @@ public class User {
     @Column
     private String email;
     @Column
+    @JsonIgnoreProperties(value = { "password" }, allowSetters = true)
     private String password;
 
     @Cascade(org.hibernate.annotations.CascadeType.PERSIST)
@@ -37,6 +39,9 @@ public class User {
             inverseJoinColumns = @JoinColumn(name = "permissionid", referencedColumnName = "id")
     )
     private List<Permission> roles = new ArrayList<>();
+
+//    @OneToMany(mappedBy = "addedBy")
+//    private List<Vacuum> addedVacuums = new ArrayList<>();
 
 
 //    private List<Permission> roles = new ArrayList<>();
