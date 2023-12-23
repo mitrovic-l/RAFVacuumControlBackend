@@ -79,5 +79,46 @@ public class VacuumController {
         return ResponseEntity.status(401).build();
     }
 
+    @DeleteMapping(value = "/remove/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> removeVacuum(@PathVariable("id") Long id, @RequestHeader(value = "Authorization") String token){
+        String email = null;
+        String auth = null;
+        if (token != null){
+            auth = token.substring(7);
+            email = this.jwtUtil.extractUsername(auth);
+            User loggedInUser = this.userService.getUser(email);
+            return ResponseEntity.ok().body(this.vacuumService.removeVacuum(id, loggedInUser));
+        }
+        return ResponseEntity.status(401).build();
+    }
+
+    @GetMapping(value = "/start/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> startVacuum(@PathVariable("id") Long id, @RequestHeader(value = "Authorization") String token){
+        String email = null;
+        String auth = null;
+        if (token != null){
+            auth = token.substring(7);
+            email = this.jwtUtil.extractUsername(auth);
+            User loggedInUser = this.userService.getUser(email);
+            this.vacuumService.startVacuumAsync(id, loggedInUser);
+            return ResponseEntity.ok().build();
+        }
+        return ResponseEntity.status(401).body("Greska prilikom pokretanja vacuum-a.");
+    }
+
+    @GetMapping(value = "/stop/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> stopVacuum(@PathVariable("id") Long id, @RequestHeader(value = "Authorization") String token){
+        String email = null;
+        String auth = null;
+        if (token != null){
+            auth = token.substring(7);
+            email = this.jwtUtil.extractUsername(auth);
+            User loggedInUser = this.userService.getUser(email);
+            this.vacuumService.stopVacuumAsync(id, loggedInUser);
+            return ResponseEntity.ok().build();
+        }
+        return ResponseEntity.status(401).body("Greska prilikom zaustavljanja vacuum-a.");
+    }
+
 
 }
