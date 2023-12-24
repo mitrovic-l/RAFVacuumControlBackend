@@ -120,5 +120,17 @@ public class VacuumController {
         return ResponseEntity.status(401).body("Greska prilikom zaustavljanja vacuum-a.");
     }
 
-
+    @GetMapping(value = "/discharge/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> dischargeVacuum(@PathVariable("id") Long id, @RequestHeader("Authorization") String token){
+        String email = null;
+        String auth = null;
+        if (token != null){
+            auth = token.substring(7);
+            email = this.jwtUtil.extractUsername(auth);
+            User loggedInUser = this.userService.getUser(email);
+            this.vacuumService.dischargeVacuumAsync(id, loggedInUser);
+            return ResponseEntity.ok().build();
+        }
+        return ResponseEntity.status(401).body("Greska prilikom praznjenja vacuum-a.");
+    }
 }

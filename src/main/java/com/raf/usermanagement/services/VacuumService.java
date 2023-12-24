@@ -5,7 +5,10 @@ import com.raf.usermanagement.model.Vacuum;
 import com.raf.usermanagement.repositories.VacuumRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+
+import javax.transaction.Transactional;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -14,6 +17,7 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 public class VacuumService {
+    //TODO: Pre svakog poziva dodati proveru da li je vacuum aktivan!
     //TODO: Implementirati svrhu ErrorMessage-a
     //TODO: Ubaciti "medjustanje" PROCESSING koje ce obezbediti da se ostale operacije ne mogu izvrsavati dok se izvrsava npr. startAsync!
     private VacuumRepository vacuumRepository;
@@ -83,6 +87,8 @@ public class VacuumService {
         }, CompletableFuture.delayedExecutor(15, TimeUnit.SECONDS));
     }
 
+    @Async
+    @Transactional
     public void stopVacuumAsync(Long vacuumId, User user){
         Optional<Vacuum> vacuumOptional = this.vacuumRepository.findById(vacuumId);
         if (!vacuumOptional.isPresent()){
@@ -93,7 +99,7 @@ public class VacuumService {
             System.out.println("Vacuum nije u stanju da trenutno bude zaustavljen.");
             return;
         } else if (vacuumOptional.get().getAddedBy().getId() != user.getId()){
-            System.out.println("Vacuum nije u vlasnistvu korisnika koji pokusava da ga pokrene.");
+            System.out.println("Vacuum nije u vlasnistvu korisnika koji pokusava da ga stopira.");
             return;
         }
         CompletableFuture.runAsync(() -> {
@@ -102,11 +108,51 @@ public class VacuumService {
                 vacuumOptional.get().setStatus(Vacuum.VacuumStatus.OFF);
                 this.vacuumRepository.save(vacuumOptional.get());
                 System.out.println("Promenjeno stanje na OFF u bazi.");
+                //Provera da li treba da se isprazni
+                if (vacuumOptional.get().getStartCount() % 3 == 0){
+                    //Nakon svakog treceg pokretanja potrebno je isprazniti
+                    dischargeVacuumAsync(vacuumId, user);
+                }
             } catch (ObjectOptimisticLockingFailureException exception) {
                 this.stopVacuumAsync(vacuumId, user);
             }
         }, CompletableFuture.delayedExecutor(18, TimeUnit.SECONDS));
         System.out.println("Odradjen stop...");
+    }
+
+    @Async
+    @Transactional
+    public void dischargeVacuumAsync(Long vacuumId, User user){
+        Optional<Vacuum> vacuumOptional = this.vacuumRepository.findById(vacuumId);
+        if (!vacuumOptional.isPresent()){
+            System.out.println("Nisam uspeo da pronadjem vacuum sa prosledjenim id-em.");
+            return;
+        } else if (vacuumOptional.get().getStatus().equals(Vacuum.VacuumStatus.ON)
+                || vacuumOptional.get().getStatus().equals(Vacuum.VacuumStatus.DISCHARGING)){
+            System.out.println("Vacuum nije u stanju da trenutno bude ispraznjen.");
+            return;
+        } else if (vacuumOptional.get().getAddedBy().getId() != user.getId()){
+            System.out.println("Vacuum nije u vlasnistvu korisnika koji pokusava da ga isprazni.");
+            return;
+        }
+        vacuumOptional.get().setStatus(Vacuum.VacuumStatus.DISCHARGING);
+        this.vacuumRepository.save(vacuumOptional.get());
+        System.out.println("--------------------> Discharging Status...");
+        CompletableFuture.runAsync(() -> {
+//            vacuumOptional.get().setStatus(Vacuum.VacuumStatus.OFF);
+            System.out.println("----------------------------------------------------> DISCHARGING VACUUUM <-------");
+//            this.vacuumRepository.save(vacuumOptional.get());
+            CompletableFuture.runAsync( () -> {
+                System.out.println("----------------------***------> STOPPING VACUUM!");
+                vacuumOptional.get().setStatus(Vacuum.VacuumStatus.OFF);
+                vacuumOptional.get().setStartCount(0);
+                this.vacuumRepository.save(vacuumOptional.get());
+            }, CompletableFuture.delayedExecutor(16, TimeUnit.SECONDS));
+            System.out.println("-----------------------------------> Stopped Status...");
+        }, CompletableFuture.delayedExecutor(16, TimeUnit.SECONDS));
+
+
+
     }
 
 
