@@ -3,13 +3,19 @@ package com.raf.usermanagement.services;
 import com.raf.usermanagement.model.User;
 import com.raf.usermanagement.model.Vacuum;
 import com.raf.usermanagement.repositories.VacuumRepository;
+import com.raf.usermanagement.requests.ScheduleRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -21,9 +27,11 @@ public class VacuumService {
     //TODO: Implementirati svrhu ErrorMessage-a
     //TODO: Ubaciti "medjustanje" PROCESSING koje ce obezbediti da se ostale operacije ne mogu izvrsavati dok se izvrsava npr. startAsync!
     private VacuumRepository vacuumRepository;
+    private TaskScheduler taskScheduler;
     @Autowired
-    public VacuumService(VacuumRepository vacuumRepository) {
+    public VacuumService(VacuumRepository vacuumRepository, TaskScheduler taskScheduler) {
         this.vacuumRepository = vacuumRepository;
+        this.taskScheduler = taskScheduler;
     }
     public Vacuum addVacuum(Vacuum vacuum, User user){
         vacuum.setAddedBy(user);
@@ -151,10 +159,56 @@ public class VacuumService {
             System.out.println("-----------------------------------> Stopped Status...");
         }, CompletableFuture.delayedExecutor(16, TimeUnit.SECONDS));
 
-
-
     }
 
 
+    @Async
+    public void schedule(ScheduleRequest scheduleRequest, User user){
+        //TODO: dodati sve provere kao iznad...
+        taskScheduler.schedule( () -> {
+            try {
+                System.out.println("Izvrsavanje zakazane operacije u : " + LocalDateTime.now().toString());
+                if (scheduleRequest.getOperation() == ScheduleRequest.VacuumOperation.START){
+                    startVacuumAsync(scheduleRequest.getVacuumId(), user);
+                } else if (scheduleRequest.getOperation() == ScheduleRequest.VacuumOperation.STOP){
+                    stopVacuumAsync(scheduleRequest.getVacuumId(), user);
+                } else if (scheduleRequest.getOperation() == ScheduleRequest.VacuumOperation.DISCHARGE){
+                    dischargeVacuumAsync(scheduleRequest.getVacuumId(), user);
+                } else{
+                    System.out.println("Los format operacije.");
+                    return;
+                }
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+        }, Date.from(scheduleRequest.getScheduledTime().atZone(ZoneId.systemDefault()).toInstant()));
+    }
 
+    public List<Vacuum> searchVacuums(String name, User user){
+        System.out.println(this.vacuumRepository.findAllBySimilarName(name, user));
+        return this.vacuumRepository.findAllBySimilarName(name, user);
+    }
+    public List<Vacuum> searchByAll(String name, List<String> statuses, LocalDate dateFrom, LocalDate dateTo, User addedBy){
+        List<Vacuum.VacuumStatus> statusList = new ArrayList<>();
+        if (!statuses.isEmpty()){
+            System.out.println(statuses);
+            for (String str : statuses){
+                if ((str.equalsIgnoreCase("ON") || str.equalsIgnoreCase("OFF") || str.equalsIgnoreCase("DISCHARGING"))){
+                    statusList.add(Vacuum.VacuumStatus.valueOf(str.toUpperCase()));
+                }
+                else
+                    System.out.println("------ --- --- ---> Prosledjen los status: " + str );
+            }
+            System.out.println("------ ---- -- ->Lista statusa: " + statusList);
+            List<Vacuum> foundVacuums = this.vacuumRepository.findVacuums(name, dateFrom, dateTo, addedBy);
+            List<Vacuum> forReturn = new ArrayList<>();
+            for (Vacuum vacuum : foundVacuums){
+                if (statusList.contains(vacuum.getStatus())){
+                    forReturn.add(vacuum);
+                }
+            }
+            return forReturn;
+        }
+        return this.vacuumRepository.findVacuums(name, dateFrom, dateTo, addedBy);
+    }
 }

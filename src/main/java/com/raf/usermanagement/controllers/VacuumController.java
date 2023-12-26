@@ -3,9 +3,11 @@ package com.raf.usermanagement.controllers;
 import com.raf.usermanagement.model.RoleType;
 import com.raf.usermanagement.model.User;
 import com.raf.usermanagement.model.Vacuum;
+import com.raf.usermanagement.requests.ScheduleRequest;
 import com.raf.usermanagement.services.UserService;
 import com.raf.usermanagement.services.VacuumService;
 import com.raf.usermanagement.utils.JwtUtil;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +15,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -133,4 +137,35 @@ public class VacuumController {
         }
         return ResponseEntity.status(401).body("Greska prilikom praznjenja vacuum-a.");
     }
+
+    @PostMapping(value = "/schedule", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> scheduleOperation(@RequestBody ScheduleRequest scheduleRequest, @RequestHeader("Authorization") String token){
+        String email = null;
+        String auth = null;
+        if (token != null){
+            auth = token.substring(7);
+            email = this.jwtUtil.extractUsername(auth);
+            User loggedInUser = this.userService.getUser(email);
+            this.vacuumService.schedule(scheduleRequest, loggedInUser);
+            return ResponseEntity.ok("Operacija: " + scheduleRequest.getOperation() + " zakazana.");
+        }
+        return ResponseEntity.status(401).body("Greska prilikom zakazivanja operacije vacuum-a.");
+    }
+
+    @GetMapping(value = "/search", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> searchVacuums(@RequestHeader("Authorization") String token, @RequestParam(value = "name", required = false) String name, @RequestParam(value = "statuses", required = false) List<String> statuses, @RequestParam(value = "dateFrom", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom, @RequestParam(value = "dateTo", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo){
+        String email = null;
+        String auth = null;
+        if (token != null){
+            auth = token.substring(7);
+            email = this.jwtUtil.extractUsername(auth);
+            User loggedInUser = this.userService.getUser(email);
+            if (statuses == null)
+                statuses = new ArrayList<>();
+            return ResponseEntity.ok(this.vacuumService.searchByAll(name, statuses, dateFrom, dateTo, loggedInUser));
+        }
+        return ResponseEntity.status(401).body("Greska prilikom pretrage vacuum-a.");
+    }
+
+
 }
