@@ -11,7 +11,6 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -54,9 +53,6 @@ public class VacuumController {
 
     @GetMapping(value = "/all", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> getAll(@RequestHeader(value = "Authorization") String token){
-//        if (!SecurityContextHolder.getContext().getAuthentication().getAuthorities().contains(RoleType.vacuum_search)){
-//            return ResponseEntity.status(403).body("Nemate dozvolu za pretragu usisivaca.");
-//        }
         String email = null;
         String auth = null;
         if (token != null){
@@ -69,22 +65,11 @@ public class VacuumController {
         return ResponseEntity.status(401).build();
     }
 
-
-    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> testiranje(@AuthenticationPrincipal User user, @RequestHeader(value = "Authorization") String token){
-        String email = null;
-        String auth = null;
-        if (token != null){
-            auth = token.substring(7);
-            email = this.jwtUtil.extractUsername(auth);
-            User loggedInUser = this.userService.getUser(email);
-            return ResponseEntity.ok().body(loggedInUser);
-        }
-        return ResponseEntity.status(401).build();
-    }
-
     @DeleteMapping(value = "/remove/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> removeVacuum(@PathVariable("id") Long id, @RequestHeader(value = "Authorization") String token){
+        if (!SecurityContextHolder.getContext().getAuthentication().getAuthorities().contains(RoleType.vacuum_remove)){
+            return ResponseEntity.status(403).body("Nemate dozvolu za uklanjanje usisivaca.");
+        }
         String email = null;
         String auth = null;
         if (token != null){
@@ -98,6 +83,9 @@ public class VacuumController {
 
     @GetMapping(value = "/start/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> startVacuum(@PathVariable("id") Long id, @RequestHeader(value = "Authorization") String token){
+        if (!SecurityContextHolder.getContext().getAuthentication().getAuthorities().contains(RoleType.vacuum_start)){
+            return ResponseEntity.status(403).body("Nemate dozvolu za pokretanje usisivaca.");
+        }
         String email = null;
         String auth = null;
         if (token != null){
@@ -112,6 +100,9 @@ public class VacuumController {
 
     @GetMapping(value = "/stop/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> stopVacuum(@PathVariable("id") Long id, @RequestHeader(value = "Authorization") String token){
+        if (!SecurityContextHolder.getContext().getAuthentication().getAuthorities().contains(RoleType.vacuum_stop)){
+            return ResponseEntity.status(403).body("Nemate dozvolu za zaustavljanje usisivaca.");
+        }
         String email = null;
         String auth = null;
         if (token != null){
@@ -126,6 +117,9 @@ public class VacuumController {
 
     @GetMapping(value = "/discharge/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> dischargeVacuum(@PathVariable("id") Long id, @RequestHeader("Authorization") String token){
+        if (!SecurityContextHolder.getContext().getAuthentication().getAuthorities().contains(RoleType.vacuum_discharge)){
+            return ResponseEntity.status(403).body("Nemate dozvolu za praznjenje usisivaca, praznjenje ce se odraditi automatski nakon svakog treceg pokretanja.");
+        }
         String email = null;
         String auth = null;
         if (token != null){
@@ -140,6 +134,22 @@ public class VacuumController {
 
     @PostMapping(value = "/schedule", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> scheduleOperation(@RequestBody ScheduleRequest scheduleRequest, @RequestHeader("Authorization") String token){
+        if (scheduleRequest.getOperation().toString().equalsIgnoreCase("START")){
+            if (!SecurityContextHolder.getContext().getAuthentication().getAuthorities().contains(RoleType.vacuum_start)){
+                return ResponseEntity.status(403).body("Nemate dozvolu za pokretanje usisivaca.");
+            }
+        } else if (scheduleRequest.getOperation().toString().equalsIgnoreCase("STOP")){
+            if (!SecurityContextHolder.getContext().getAuthentication().getAuthorities().contains(RoleType.vacuum_stop)){
+                return ResponseEntity.status(403).body("Nemate dozvolu za zaustavljanje usisivaca.");
+            }
+        } else if (scheduleRequest.getOperation().toString().equalsIgnoreCase("DISCHARGE")){
+            if (!SecurityContextHolder.getContext().getAuthentication().getAuthorities().contains(RoleType.vacuum_discharge)){
+                return ResponseEntity.status(403).body("Nemate dozvolu za praznjenje usisivaca.");
+            }
+        } else {
+            System.out.println("Lose prosledjena operacija: " + scheduleRequest.getOperation().toString());
+            return ResponseEntity.badRequest().body("Operacija ne postoji.");
+        }
         String email = null;
         String auth = null;
         if (token != null){
@@ -154,6 +164,9 @@ public class VacuumController {
 
     @GetMapping(value = "/search", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> searchVacuums(@RequestHeader("Authorization") String token, @RequestParam(value = "name", required = false) String name, @RequestParam(value = "statuses", required = false) List<String> statuses, @RequestParam(value = "dateFrom", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom, @RequestParam(value = "dateTo", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo){
+        if (!SecurityContextHolder.getContext().getAuthentication().getAuthorities().contains(RoleType.vacuum_search)){
+            return ResponseEntity.status(403).body("Nemate dozvolu za pretragu usisivaca.");
+        }
         String email = null;
         String auth = null;
         if (token != null){
@@ -166,6 +179,4 @@ public class VacuumController {
         }
         return ResponseEntity.status(401).body("Greska prilikom pretrage vacuum-a.");
     }
-
-
 }

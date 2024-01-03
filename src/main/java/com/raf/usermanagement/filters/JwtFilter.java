@@ -31,7 +31,6 @@ public class JwtFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, FilterChain filterChain) throws ServletException, IOException {
         try {
-            System.out.println("-----------> doFilterInternal");
             String authHeader = httpServletRequest.getHeader("Authorization");
             String jwt = null;
             String username = null;
@@ -42,13 +41,12 @@ public class JwtFilter extends OncePerRequestFilter {
             }
 
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                System.out.println("-----------> Uso u if u doFilterInternal");
                 UserDetails userDetails = this.userService.loadUserDetailsByEmail(username);
                 User user = this.userService.loadUserByEmail(username);
                 String path = httpServletRequest.getRequestURI().substring(httpServletRequest.getContextPath().length());
 
                 if (jwtUtil.validateToken(jwt, userDetails)) {
-                    System.out.println("-----------> Uso u if u ifu " + userDetails.getAuthorities());
+                    System.out.println("-----------> Korisnik ima permisije: " + userDetails.getAuthorities());
                     UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(
                             userDetails, null, userDetails.getAuthorities());
 
