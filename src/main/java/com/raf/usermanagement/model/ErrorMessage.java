@@ -28,4 +28,8 @@ public class ErrorMessage {
     @Column(nullable = false)
     private String message;
 
+    @ManyToOne
+    @JoinColumn(name = "userId", referencedColumnName = "id")
+    private User user;
+
 }

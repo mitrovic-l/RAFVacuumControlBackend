@@ -92,7 +92,7 @@ public class VacuumController {
             auth = token.substring(7);
             email = this.jwtUtil.extractUsername(auth);
             User loggedInUser = this.userService.getUser(email);
-            this.vacuumService.startVacuumAsync(id, loggedInUser);
+            this.vacuumService.startVacuumAsync(id, loggedInUser, false);
             return ResponseEntity.ok().build();
         }
         return ResponseEntity.status(401).body("Greska prilikom pokretanja vacuum-a.");
@@ -109,7 +109,7 @@ public class VacuumController {
             auth = token.substring(7);
             email = this.jwtUtil.extractUsername(auth);
             User loggedInUser = this.userService.getUser(email);
-            this.vacuumService.stopVacuumAsync(id, loggedInUser);
+            this.vacuumService.stopVacuumAsync(id, loggedInUser, false);
             return ResponseEntity.ok().build();
         }
         return ResponseEntity.status(401).body("Greska prilikom zaustavljanja vacuum-a.");
@@ -126,7 +126,7 @@ public class VacuumController {
             auth = token.substring(7);
             email = this.jwtUtil.extractUsername(auth);
             User loggedInUser = this.userService.getUser(email);
-            this.vacuumService.dischargeVacuumAsync(id, loggedInUser);
+            this.vacuumService.dischargeVacuumAsync(id, loggedInUser, false);
             return ResponseEntity.ok().build();
         }
         return ResponseEntity.status(401).body("Greska prilikom praznjenja vacuum-a.");
