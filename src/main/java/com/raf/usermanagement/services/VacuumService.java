@@ -47,11 +47,14 @@ public class VacuumService {
     }
     public List<Vacuum> findAllVacuumsForUser(User user){
         List<Vacuum> vacuumList = this.vacuumRepository.findAllByAddedBy(user);
-        for (int i=0; i< vacuumList.size(); i++){
-            if (!vacuumList.get(i).getActive())
-                vacuumList.remove(i);
+        if (vacuumList.isEmpty())
+            return vacuumList;
+        List<Vacuum> forReturn = new ArrayList<>();
+        for (Vacuum v : vacuumList){
+            if (v.getActive())
+                forReturn.add(v);
         }
-        return vacuumList;
+        return forReturn;
     }
     public Vacuum removeVacuum(Long id, User user){
         Optional<Vacuum> vacuum = this.vacuumRepository.findById(id);
@@ -127,16 +130,20 @@ public class VacuumService {
             System.out.println("Vacuum nije u vlasnistvu korisnika koji pokusava da ga stopira.");
             return;
         }
+        //Provera da li treba da se isprazni
+        if (vacuumOptional.get().getStartCount() % 3 == 0){
+            //Nakon svakog treceg pokretanja potrebno je isprazniti
+            vacuumOptional.get().setStatus(Vacuum.VacuumStatus.OFF);
+            this.vacuumRepository.save(vacuumOptional.get());
+            dischargeVacuumAsync(vacuumId, user, scheduled); //mozda staviti ovo na false jer ima vise smisla?
+            return;
+        }
         CompletableFuture.runAsync(() -> {
             try {
                 vacuumOptional.get().setStatus(Vacuum.VacuumStatus.OFF);
                 this.vacuumRepository.save(vacuumOptional.get());
                 System.out.println("Promenjeno stanje na OFF u bazi.");
-                //Provera da li treba da se isprazni
-                if (vacuumOptional.get().getStartCount() % 3 == 0){
-                    //Nakon svakog treceg pokretanja potrebno je isprazniti
-                    dischargeVacuumAsync(vacuumId, user, scheduled); //mozda staviti ovo na false jer ima vise smisla?
-                }
+
             } catch (ObjectOptimisticLockingFailureException exception) {
                 this.stopVacuumAsync(vacuumId, user, scheduled);
             }
