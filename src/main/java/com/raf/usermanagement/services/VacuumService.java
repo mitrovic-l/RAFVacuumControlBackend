@@ -46,7 +46,12 @@ public class VacuumService {
         return this.vacuumRepository.save(vacuum);
     }
     public List<Vacuum> findAllVacuumsForUser(User user){
-        return this.vacuumRepository.findAllByAddedBy(user);
+        List<Vacuum> vacuumList = this.vacuumRepository.findAllByAddedBy(user);
+        for (int i=0; i< vacuumList.size(); i++){
+            if (!vacuumList.get(i).getActive())
+                vacuumList.remove(i);
+        }
+        return vacuumList;
     }
     public Vacuum removeVacuum(Long id, User user){
         Optional<Vacuum> vacuum = this.vacuumRepository.findById(id);

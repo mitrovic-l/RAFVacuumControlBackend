@@ -20,7 +20,7 @@ public interface VacuumRepository extends JpaRepository<Vacuum, Long> {
     @Query("SELECT v FROM Vacuum v WHERE" +
             "(:name IS NULL OR LOWER(v.name) LIKE LOWER(CONCAT('%', :name, '%'))) AND " +
             "(:dateFrom IS NULL OR v.dateAdded >= :dateFrom) AND " +
-            "(:dateTo IS NULL OR v.dateAdded <= :dateTo) AND v.addedBy = :addedBy")
+            "(:dateTo IS NULL OR v.dateAdded <= :dateTo) AND v.addedBy = :addedBy AND v.active = true ")
     List<Vacuum> findVacuums(@Param("name") String name,
                              @Param("dateFrom") LocalDate dateFrom,
                              @Param("dateTo") LocalDate dateTo,
