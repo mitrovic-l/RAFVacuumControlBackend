@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @CrossOrigin
@@ -92,6 +93,10 @@ public class VacuumController {
             auth = token.substring(7);
             email = this.jwtUtil.extractUsername(auth);
             User loggedInUser = this.userService.getUser(email);
+            Optional<Vacuum> vacuum = this.vacuumService.findVacuumById(id);
+            if (vacuum.isPresent() && vacuum.get().getStatus().equals(Vacuum.VacuumStatus.PROCESSING)){
+                return ResponseEntity.badRequest().body("Vacuum je u stanju PROCESSING.");
+            }
             this.vacuumService.startVacuumAsync(id, loggedInUser, false);
             return ResponseEntity.ok().build();
         }
@@ -109,6 +114,10 @@ public class VacuumController {
             auth = token.substring(7);
             email = this.jwtUtil.extractUsername(auth);
             User loggedInUser = this.userService.getUser(email);
+            Optional<Vacuum> vacuum = this.vacuumService.findVacuumById(id);
+            if (vacuum.isPresent() && vacuum.get().getStatus().equals(Vacuum.VacuumStatus.PROCESSING)){
+                return ResponseEntity.badRequest().body("Vacuum je u stanju PROCESSING.");
+            }
             this.vacuumService.stopVacuumAsync(id, loggedInUser, false);
             return ResponseEntity.ok().build();
         }
@@ -126,6 +135,10 @@ public class VacuumController {
             auth = token.substring(7);
             email = this.jwtUtil.extractUsername(auth);
             User loggedInUser = this.userService.getUser(email);
+            Optional<Vacuum> vacuum = this.vacuumService.findVacuumById(id);
+            if (vacuum.isPresent() && vacuum.get().getStatus().equals(Vacuum.VacuumStatus.PROCESSING)){
+                return ResponseEntity.badRequest().body("Vacuum je u stanju PROCESSING.");
+            }
             this.vacuumService.dischargeVacuumAsync(id, loggedInUser, false);
             return ResponseEntity.ok().build();
         }

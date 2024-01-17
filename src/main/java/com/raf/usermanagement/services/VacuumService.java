@@ -71,11 +71,12 @@ public class VacuumService {
     }
     public void startVacuumAsync(Long vacuumId, User user, boolean scheduled) {
         Optional<Vacuum> vacuumOptional = this.vacuumRepository.findById(vacuumId);
-        if (!vacuumOptional.isPresent()){
+        if (!vacuumOptional.isPresent() || !vacuumOptional.get().getActive()){
             System.out.println("Nisam uspeo da pronadjem vacuum sa prosledjenim id-em.");
             return;
         } else if (vacuumOptional.get().getStatus().equals(Vacuum.VacuumStatus.ON)
-                || vacuumOptional.get().getStatus().equals(Vacuum.VacuumStatus.DISCHARGING)){
+                || vacuumOptional.get().getStatus().equals(Vacuum.VacuumStatus.DISCHARGING)
+                || vacuumOptional.get().getStatus().equals(Vacuum.VacuumStatus.PROCESSING)){
             System.out.println("Vacuum nije u stanju da trenutno bude pokrenut.");
             //Doslo je do greske, proveramo ako je scheduled moramo sacuvati errorMessage
             if (scheduled){
@@ -93,6 +94,8 @@ public class VacuumService {
             System.out.println("Vacuum nije u vlasnistvu korisnika koji pokusava da ga pokrene.");
             return;
         }
+        vacuumOptional.get().setStatus(Vacuum.VacuumStatus.PROCESSING);
+        this.vacuumRepository.save(vacuumOptional.get());
         CompletableFuture.runAsync(() -> {
             try {
                 vacuumOptional.get().setStartCount(vacuumOptional.get().getStartCount() + 1);
@@ -109,11 +112,12 @@ public class VacuumService {
     @Transactional
     public void stopVacuumAsync(Long vacuumId, User user, boolean scheduled){
         Optional<Vacuum> vacuumOptional = this.vacuumRepository.findById(vacuumId);
-        if (!vacuumOptional.isPresent()){
+        if (!vacuumOptional.isPresent() || !vacuumOptional.get().getActive()){
             System.out.println("Nisam uspeo da pronadjem vacuum sa prosledjenim id-em.");
             return;
         } else if (vacuumOptional.get().getStatus().equals(Vacuum.VacuumStatus.OFF)
-                || vacuumOptional.get().getStatus().equals(Vacuum.VacuumStatus.DISCHARGING)){
+                || vacuumOptional.get().getStatus().equals(Vacuum.VacuumStatus.DISCHARGING)
+                || vacuumOptional.get().getStatus().equals(Vacuum.VacuumStatus.PROCESSING)){
             System.out.println("Vacuum nije u stanju da trenutno bude zaustavljen.");
             if (scheduled){
                 ErrorMessage message = new ErrorMessage();
@@ -130,6 +134,8 @@ public class VacuumService {
             System.out.println("Vacuum nije u vlasnistvu korisnika koji pokusava da ga stopira.");
             return;
         }
+        vacuumOptional.get().setStatus(Vacuum.VacuumStatus.PROCESSING);
+        this.vacuumRepository.save(vacuumOptional.get());
         //Provera da li treba da se isprazni
         if (vacuumOptional.get().getStartCount() % 3 == 0){
             //Nakon svakog treceg pokretanja potrebno je isprazniti
@@ -155,11 +161,12 @@ public class VacuumService {
     @Transactional
     public void dischargeVacuumAsync(Long vacuumId, User user, boolean scheduled){
         Optional<Vacuum> vacuumOptional = this.vacuumRepository.findById(vacuumId);
-        if (!vacuumOptional.isPresent()){
+        if (!vacuumOptional.isPresent() || !vacuumOptional.get().getActive()){
             System.out.println("Nisam uspeo da pronadjem vacuum sa prosledjenim id-em.");
             return;
         } else if (vacuumOptional.get().getStatus().equals(Vacuum.VacuumStatus.ON)
-                || vacuumOptional.get().getStatus().equals(Vacuum.VacuumStatus.DISCHARGING)){
+                || vacuumOptional.get().getStatus().equals(Vacuum.VacuumStatus.DISCHARGING)
+                || vacuumOptional.get().getStatus().equals(Vacuum.VacuumStatus.PROCESSING)){
             System.out.println("Vacuum nije u stanju da trenutno bude ispraznjen.");
             if (scheduled){
                 ErrorMessage message = new ErrorMessage();
@@ -197,7 +204,6 @@ public class VacuumService {
 
     @Async
     public void schedule(ScheduleRequest scheduleRequest, User user){
-        //TODO: dodati sve provere kao iznad...
         taskScheduler.schedule( () -> {
             try {
                 System.out.println("Izvrsavanje zakazane operacije u : " + LocalDateTime.now().toString());
@@ -231,12 +237,16 @@ public class VacuumService {
             List<Vacuum> foundVacuums = this.vacuumRepository.findVacuums(name, dateFrom, dateTo, addedBy);
             List<Vacuum> forReturn = new ArrayList<>();
             for (Vacuum vacuum : foundVacuums){
-                if (statusList.contains(vacuum.getStatus())){
+                if (statusList.contains(vacuum.getStatus()) && vacuum.getActive()){
                     forReturn.add(vacuum);
                 }
             }
             return forReturn;
         }
         return this.vacuumRepository.findVacuums(name, dateFrom, dateTo, addedBy);
+    }
+
+    public Optional<Vacuum> findVacuumById(Long id){
+        return this.vacuumRepository.findById(id);
     }
 }

@@ -39,6 +39,6 @@ public class Vacuum {
     @Version
     private Integer version = 0; //zbog optimisticLock-ovanja...
     public enum VacuumStatus {
-        ON, OFF, DISCHARGING
+        ON, OFF, DISCHARGING, PROCESSING
     }
 }
