@@ -25,10 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 public class VacuumService {
-    //TODO: Pre svakog poziva dodati proveru da li je vacuum aktivan!
-    //TODO: Implementirati svrhu ErrorMessage-a
-    //TODO: Ubaciti "medjustanje" PROCESSING koje ce obezbediti da se ostale operacije ne mogu izvrsavati dok se izvrsava npr. startAsync!
-    private VacuumRepository vacuumRepository;
+     private VacuumRepository vacuumRepository;
     private TaskScheduler taskScheduler;
     private ErrorMessageRepository errorMessageRepository;
     @Autowired
@@ -77,8 +74,6 @@ public class VacuumService {
         } else if (vacuumOptional.get().getStatus().equals(Vacuum.VacuumStatus.ON)
                 || vacuumOptional.get().getStatus().equals(Vacuum.VacuumStatus.DISCHARGING)
                 || vacuumOptional.get().getStatus().equals(Vacuum.VacuumStatus.PROCESSING)){
-            System.out.println("Vacuum nije u stanju da trenutno bude pokrenut.");
-            //Doslo je do greske, proveramo ako je scheduled moramo sacuvati errorMessage
             if (scheduled){
                 ErrorMessage message = new ErrorMessage();
                 message.setVacuum(vacuumOptional.get());
@@ -87,11 +82,9 @@ public class VacuumService {
                 message.setMessage("Usisivac [" + vacuumOptional.get().getName() + "] nije u stanju da bude pokrenut ili je vec pokrenut!");
                 message.setOperation("START");
                 this.errorMessageRepository.save(message);
-                System.out.println(" --- --- --- --- ---> Uspesno sacuvana poruka o gresci.");
             }
             return;
         } else if (vacuumOptional.get().getAddedBy().getId() != user.getId()){
-            System.out.println("Vacuum nije u vlasnistvu korisnika koji pokusava da ga pokrene.");
             return;
         }
         vacuumOptional.get().setStatus(Vacuum.VacuumStatus.PROCESSING);
@@ -113,25 +106,21 @@ public class VacuumService {
     public void stopVacuumAsync(Long vacuumId, User user, boolean scheduled){
         Optional<Vacuum> vacuumOptional = this.vacuumRepository.findById(vacuumId);
         if (!vacuumOptional.isPresent() || !vacuumOptional.get().getActive()){
-            System.out.println("Nisam uspeo da pronadjem vacuum sa prosledjenim id-em.");
             return;
         } else if (vacuumOptional.get().getStatus().equals(Vacuum.VacuumStatus.OFF)
                 || vacuumOptional.get().getStatus().equals(Vacuum.VacuumStatus.DISCHARGING)
                 || vacuumOptional.get().getStatus().equals(Vacuum.VacuumStatus.PROCESSING)){
-            System.out.println("Vacuum nije u stanju da trenutno bude zaustavljen.");
             if (scheduled){
                 ErrorMessage message = new ErrorMessage();
                 message.setVacuum(vacuumOptional.get());
                 message.setUser(user);
                 message.setDate(LocalDate.now());
-                message.setMessage("Usisivac [" + vacuumOptional.get().getName() + "] nije u stanju da bude zaustavljrn ili je vec zaustavljen!");
+                message.setMessage("Usisivac [" + vacuumOptional.get().getName() + "] nije u stanju da bude zaustavljen ili je vec zaustavljen!");
                 message.setOperation("STOP");
                 this.errorMessageRepository.save(message);
-                System.out.println(" --- --- --- --- ---> Uspesno sacuvana poruka o gresci.");
             }
             return;
         } else if (vacuumOptional.get().getAddedBy().getId() != user.getId()){
-            System.out.println("Vacuum nije u vlasnistvu korisnika koji pokusava da ga stopira.");
             return;
         }
         vacuumOptional.get().setStatus(Vacuum.VacuumStatus.PROCESSING);
@@ -148,13 +137,10 @@ public class VacuumService {
             try {
                 vacuumOptional.get().setStatus(Vacuum.VacuumStatus.OFF);
                 this.vacuumRepository.save(vacuumOptional.get());
-                System.out.println("Promenjeno stanje na OFF u bazi.");
-
             } catch (ObjectOptimisticLockingFailureException exception) {
                 this.stopVacuumAsync(vacuumId, user, scheduled);
             }
         }, CompletableFuture.delayedExecutor(18, TimeUnit.SECONDS));
-        System.out.println("Odradjen stop...");
     }
 
     @Async
@@ -162,12 +148,10 @@ public class VacuumService {
     public void dischargeVacuumAsync(Long vacuumId, User user, boolean scheduled){
         Optional<Vacuum> vacuumOptional = this.vacuumRepository.findById(vacuumId);
         if (!vacuumOptional.isPresent() || !vacuumOptional.get().getActive()){
-            System.out.println("Nisam uspeo da pronadjem vacuum sa prosledjenim id-em.");
             return;
         } else if (vacuumOptional.get().getStatus().equals(Vacuum.VacuumStatus.ON)
                 || vacuumOptional.get().getStatus().equals(Vacuum.VacuumStatus.DISCHARGING)
                 || vacuumOptional.get().getStatus().equals(Vacuum.VacuumStatus.PROCESSING)){
-            System.out.println("Vacuum nije u stanju da trenutno bude ispraznjen.");
             if (scheduled){
                 ErrorMessage message = new ErrorMessage();
                 message.setVacuum(vacuumOptional.get());
@@ -176,27 +160,21 @@ public class VacuumService {
                 message.setMessage("Usisivac [" + vacuumOptional.get().getName() + "] nije u stanju da bude ispraznjen ili se trenutno prazni.");
                 message.setOperation("DISCHARGE");
                 this.errorMessageRepository.save(message);
-                System.out.println(" --- --- --- --- ---> Uspesno sacuvana poruka o gresci.");
             }
             return;
         } else if (vacuumOptional.get().getAddedBy().getId() != user.getId()){
-            System.out.println("Vacuum nije u vlasnistvu korisnika koji pokusava da ga isprazni.");
             return;
         }
         vacuumOptional.get().setStatus(Vacuum.VacuumStatus.DISCHARGING);
         this.vacuumRepository.save(vacuumOptional.get());
-        System.out.println("--------------------> Discharging Status...");
         CompletableFuture.runAsync(() -> {
 //            vacuumOptional.get().setStatus(Vacuum.VacuumStatus.OFF);
-            System.out.println("----------------------------------------------------> DISCHARGING VACUUUM <-------");
 //            this.vacuumRepository.save(vacuumOptional.get());
             CompletableFuture.runAsync( () -> {
-                System.out.println("----------------------***------> STOPPING VACUUM!");
                 vacuumOptional.get().setStatus(Vacuum.VacuumStatus.OFF);
                 vacuumOptional.get().setStartCount(0);
                 this.vacuumRepository.save(vacuumOptional.get());
             }, CompletableFuture.delayedExecutor(16, TimeUnit.SECONDS));
-            System.out.println("-----------------------------------> Stopped Status...");
         }, CompletableFuture.delayedExecutor(16, TimeUnit.SECONDS));
 
     }
