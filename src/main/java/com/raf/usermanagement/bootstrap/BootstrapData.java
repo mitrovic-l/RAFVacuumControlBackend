@@ -5,11 +5,13 @@ import com.raf.usermanagement.model.RoleType;
 import com.raf.usermanagement.model.User;
 import com.raf.usermanagement.model.Vacuum;
 import com.raf.usermanagement.repositories.UserRepository;
+import com.raf.usermanagement.services.VacuumService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -18,11 +20,13 @@ import java.util.List;
 public class BootstrapData implements CommandLineRunner {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final VacuumService vacuumService;
 
     @Autowired
-    public BootstrapData(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public BootstrapData(UserRepository userRepository, PasswordEncoder passwordEncoder, VacuumService vacuumService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.vacuumService = vacuumService;
     }
 
     @Override
@@ -73,6 +77,15 @@ public class BootstrapData implements CommandLineRunner {
         //user2.setRoles(List.of(p5));
 
         this.userRepository.save(user2);
+
+        Vacuum vacuum1 = new Vacuum();
+        vacuum1.setName("Vacuum1");
+        this.vacuumService.addVacuum(vacuum1, user);
+        Vacuum vacuum2 = new Vacuum();
+        vacuum2.setName("Proba");
+        this.vacuumService.addVacuum(vacuum2, user2);
+//        vacuum1.setDateAdded(LocalDate.of(2023, 11, 23));
+//        this.vacuumService.update(vacuum1);
         System.out.println("-----------> Podaci ucitani. <-----------");
     }
 }

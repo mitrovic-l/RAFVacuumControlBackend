@@ -227,4 +227,8 @@ public class VacuumService {
     public Optional<Vacuum> findVacuumById(Long id){
         return this.vacuumRepository.findById(id);
     }
+
+    public void update(Vacuum vacuum){
+        this.vacuumRepository.save(vacuum);
+    }
 }
